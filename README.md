@@ -8,11 +8,13 @@ Here are a few examples of what additional resources you will be able to manage 
 
 The following snippet is required in each CloudFormation stack that wants to make use of this helper.
 
+Download the `customresource.template.json` file from the [releases](https://github.com/emdgroup/cfn-custom-resource/releases) page and place it on an S3 bucket in your account.
+
 ```yaml
 CustomResource:
   Type: AWS::CloudFormation::Stack
   Properties:
-    TemplateURL: https://s3-eu-west-1.amazonaws.com/hcie-templates/customresource/v1.0.0/customresource.template.json
+    TemplateURL: https://s3.amazonaws.com/my-templates/customresource/v1.1.0/customresource.template.json
 
 CustomResourcePolicy:
   Type: AWS::IAM::Policy
@@ -70,7 +72,7 @@ UserPoolClientSettings:
         AllowedOAuthScopes: [openid]
         SupportedIdentityProviders: [COGNITO]
         CallbackURLs:
-          - !Sub https://${HostedZone}/_plugin/esproxy/callback
+          - !Sub https://${HostedZone}/callback
 ```
 
 ### Cognito::ClientSecret
