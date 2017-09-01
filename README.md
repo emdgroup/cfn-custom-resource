@@ -29,6 +29,70 @@ CustomResourcePolicy:
             - ses:VerifyDomainIdentity
 ```
 
+## Cognito
+
+### Cognito::UserPoolClientDomain
+
+```yaml
+UserPoolClientDomain:
+  Type: Custom::Cognito::UserPoolClientDomain
+  Properties:
+    ServiceToken: !GetAtt CustomResource.Outputs.ServiceToken
+    Service: CognitoIdentityServiceProvider
+    Parameters:
+      UserPoolId: !Ref UserPool
+      Domain: !Sub ${AWS::StackName}
+    Create:
+      Action: createUserPoolDomain
+    Update:
+      Action: deleteUserPoolDomain
+    Delete:
+      Action: deleteUserPoolDomain
+      IgnoreErrors: true
+```
+
+### Cognito::UserPoolClientSettings
+
+`AWS::Cognito::UserPoolClient` doesn't allow defining some of the settings for a user pool, such as the callback URLs or the allowed OAuth flows and scopes. A regular `AWS::Cognito::UserPoolClient` resource needs to exist already.
+
+```yaml
+UserPoolClientSettings:
+  Type: Custom::Cognito::UserPoolClientSettings
+  Properties:
+    ServiceToken: !GetAtt CustomResource.Outputs.ServiceToken
+    Service: CognitoIdentityServiceProvider
+    Create:
+      Action: updateUserPoolClient
+      Parameters:
+        UserPoolId: !Ref UserPool
+        ClientId: !Ref UserPoolClient
+        AllowedOAuthFlows: [code, implicit]
+        AllowedOAuthScopes: [openid]
+        SupportedIdentityProviders: [COGNITO]
+        CallbackURLs:
+          - !Sub https://${HostedZone}/_plugin/esproxy/callback
+```
+
+### Cognito::ClientSecret
+
+Although `AWS::Cognito::UserPoolClient` in theory returns a `ClientSecret` attribute, it only return a string that states that retrieving client secrets through CloudFormation are not supported at this time.
+
+```yaml
+UserPoolClientSecret:
+  Type: Custom::Cognito::ClientSecret
+  Properties:
+    ServiceToken: !GetAtt CustomResource.Outputs.ServiceToken
+    Service: CognitoIdentityServiceProvider
+    Create:
+      Action: describeUserPoolClient
+      Attributes: UserPoolClient
+      Parameters:
+        UserPoolId: !Ref UserPool
+        ClientId: !Ref UserPoolClient
+
+# The client secret will be accessible as !GetAtt UserPoolClientSecret.ClientSecret
+```
+
 ## SES
 
 ### SES::DomainVerification
