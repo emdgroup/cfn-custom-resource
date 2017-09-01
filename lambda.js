@@ -5,7 +5,7 @@ const AWS = require('aws-sdk'),
   crypto = require('crypto');
 
 exports.handler = (event, context, cb) => {
-  console.log('Received event:', JSON.stringify(event, null, 2));
+  // console.log('Received event:', JSON.stringify(event, null, 2));
   event.ResourceProperties = fixBooleans(event.ResourceProperties, event.PhysicalResourceId);
   let args = event.ResourceProperties[event.RequestType];
   if(!args) args = event.RequestType === 'Delete' ? {} : event.ResourceProperties['Create'];
