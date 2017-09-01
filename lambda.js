@@ -91,12 +91,8 @@ let response = {
       hostname: parsed.hostname,
       path: parsed.path,
       method: 'PUT',
-    }, function(response) {
-      console.log("Status code: " + response.statusCode);
-      console.log("Status message: " + response.statusMessage);
-      context.done();
-    }).on("error", function(error) {
-      console.log("send(..) failed executing https.request(..): " + error);
+    }, res => () => context.done()).on("error", function(error) {
+      console.log(error);
       context.done();
     }).end(JSON.stringify(responseBody));
   },
