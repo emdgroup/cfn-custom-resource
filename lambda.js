@@ -42,13 +42,14 @@ function fixBooleans(obj, physicalId) {
   } else if (typeof obj === 'string')
     return obj === 'true' ? true :
       obj === 'false' ? false :
+      obj === 'null' ? null :
       obj.replace(/\${PhysicalId}/, physicalId).replace(/\${Random}/, random());
   else return obj;
 }
 
 function deleteResource(args, event, context, cb) {
   request(args, event, function(err, data) {
-    if (err && args.IgnoreErrors !== 'true') {
+    if (err && args.IgnoreErrors !== true) {
       response.send(event, context, response.FAILED, err, event.PhysicalResourceId);
     } else cb(data);
   });
@@ -56,7 +57,7 @@ function deleteResource(args, event, context, cb) {
 
 function createOrUpdateResource(args, event, context, cb) {
   request(args, event, function(err, data) {
-    if (err && args.IgnoreErrors !== 'true') {
+    if (err && args.IgnoreErrors !== true) {
       response.send(event, context, response.FAILED, err, event.PhysicalResourceId);
     } else cb(data);
   });
