@@ -35,15 +35,15 @@ Resources:
 Outputs:
   ServiceToken:
     Value: !GetAtt CustomResource.Arn
-    Exports:
+    Export:
       Name: !Sub ${AWS::StackName}:ServiceToken
   Role:
     Value: !Ref CustomResourceRole
-    Exports:
+    Export:
       Name: !Sub ${AWS::StackName}:Role
   RoleArn:
     Value: !GetAtt CustomResourceRole.Arn
-    Exports:
+    Export:
       Name: !Sub ${AWS::StackName}:RoleArn
   TemplateName:
     Value: TEMPLATE_NAME_REPLACE
