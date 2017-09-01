@@ -1,0 +1,47 @@
+Description: Generic Custom::Resource for CloudFormation
+Parameters:
+  LambdaTimeout:
+    Type: Number
+    Default: 10
+
+Resources:
+  CustomResource:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Role: !GetAtt CustomResourceRole.Arn
+      Code:
+        ZipFile: !Include { type: string, location: lambda.js }
+      Runtime: nodejs6.10
+      Timeout: !Ref LambdaTimeout
+  CustomResourceLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 7
+      LogGroupName: !Sub /aws/lambda/${CustomResource}
+  CustomResourceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+Outputs:
+  Arn:
+    Value: !GetAtt CustomResource.Arn
+  Role:
+    Value: !Ref CustomResourceRole
+  RoleArn:
+    Value: !GetAtt CustomResourceRole.Arn
+  TemplateName:
+    Value: TEMPLATE_NAME_REPLACE
+  TemplateVersion:
+    Value: TEMPLATE_GIT_VERSION_REPLACE
+  TemplateBuildDate:
+    Value: TEMPLATE_BUILD_DATE_REPLACE
