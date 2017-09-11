@@ -75,7 +75,7 @@ let response = {
   send: (event, context, responseStatus, responseData, physicalResourceId) => {
     let responseBody = {
       Status: responseStatus,
-      Reason: responseData instanceof Error ? responseData.toString : null,
+      Reason: responseData instanceof Error ? responseData.toString() : null,
       PhysicalResourceId: physicalResourceId || context.logStreamName,
       StackId: event.StackId,
       RequestId: event.RequestId,
