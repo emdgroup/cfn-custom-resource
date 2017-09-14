@@ -25,7 +25,7 @@ exports.handler = (event, context, cb) => {
       if (props.PhysicalResourceIdQuery) event.PhysicalResourceId = jmespath.search(data, props.PhysicalResourceIdQuery);
       if (props.PhysicalResourceId) event.PhysicalResourceId = props.PhysicalResourceId;
       if (props.Attributes) data = jmespath.search(data, props.Attributes);
-      response.send(event, context, response.SUCCESS, data, event.PhysicalResourceId || event.RequestId);
+      response.send(event, context, response.SUCCESS, data, event.PhysicalResourceId);
     });
   }
 };
@@ -72,17 +72,25 @@ function request(args, event, cb) {
 let response = {
   SUCCESS: 'SUCCESS',
   FAILED: 'FAILED',
-  send: (event, context, responseStatus, responseData, physicalResourceId) => {
-    let responseBody = {
+  body: function(event, context, responseStatus, responseData, physicalResourceId) {
+    let body = {
       Status: responseStatus,
       Reason: responseData instanceof Error ? responseData.toString() : '',
-      PhysicalResourceId: physicalResourceId || context.logStreamName,
+      PhysicalResourceId: physicalResourceId || event.RequestId,
       StackId: event.StackId,
       RequestId: event.RequestId,
       LogicalResourceId: event.LogicalResourceId,
       Data: responseStatus === response.FAILED ? null : responseData,
-    };
-
+    }
+    if(JSON.stringify(body).length > 4096) {
+      console.log('truncated responseData as it exceeded 4096 bytes');
+      return Object.assign(body, { Data: null });
+    } else {
+      return body;
+    }
+  },
+  send: function(event, context) {
+    let responseBody = response.body.apply(this, arguments);
     console.log('Response', JSON.stringify(Object.assign({}, responseBody, {
       Data: null
     })));
