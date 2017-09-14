@@ -33,21 +33,25 @@ CustomResourcePolicy:
 
 ## Cognito
 
-### Cognito::UserPoolClientDomain
+### Cognito::UserPoolDomain
 
 ```yaml
-UserPoolClientDomain:
-  Type: Custom::Cognito::UserPoolClientDomain
+UserPoolDomain:
+  Type: Custom::CognitoUserPoolDomain
   Properties:
     ServiceToken: !GetAtt CustomResource.Outputs.ServiceToken
     Service: CognitoIdentityServiceProvider
+    PhysicalResourceId: !Ref DomainName
     Parameters:
       UserPoolId: !Ref UserPool
-      Domain: !Sub ${AWS::StackName}
+      Domain: ${PhysicalId}
     Create:
       Action: createUserPoolDomain
     Update:
+      # Updates are not fully supported. This will delete the previous domain name.
+      # You will have to create the new domain name manually through the API or console.
       Action: deleteUserPoolDomain
+      IgnoreErrors: true
     Delete:
       Action: deleteUserPoolDomain
       IgnoreErrors: true
@@ -59,7 +63,7 @@ UserPoolClientDomain:
 
 ```yaml
 UserPoolClientSettings:
-  Type: Custom::Cognito::UserPoolClientSettings
+  Type: Custom::CognitoUserPoolClientSettings
   Properties:
     ServiceToken: !GetAtt CustomResource.Outputs.ServiceToken
     Service: CognitoIdentityServiceProvider
@@ -71,6 +75,7 @@ UserPoolClientSettings:
         AllowedOAuthFlows: [code, implicit]
         AllowedOAuthScopes: [openid]
         SupportedIdentityProviders: [COGNITO]
+        AllowedOAuthFlowsUserPoolClient: true
         CallbackURLs:
           - !Sub https://${HostedZone}/callback
 ```
@@ -81,7 +86,7 @@ Although `AWS::Cognito::UserPoolClient` in theory returns a `ClientSecret` attri
 
 ```yaml
 UserPoolClientSecret:
-  Type: Custom::Cognito::ClientSecret
+  Type: Custom::CognitoClientSecret
   Properties:
     ServiceToken: !GetAtt CustomResource.Outputs.ServiceToken
     Service: CognitoIdentityServiceProvider
@@ -95,13 +100,41 @@ UserPoolClientSecret:
 # The client secret will be accessible as !GetAtt UserPoolClientSecret.ClientSecret
 ```
 
+### Cognito::UICustomization
+
+```yaml
+UserPoolUICustomization:
+  Type: Custom::CognitoUICustomization
+  Properties:
+    ServiceToken: !GetAtt CustomResource.Outputs.ServiceToken
+    Service: CognitoIdentityServiceProvider
+    PhysicalResourceId: ALL
+    Create:
+      Action: setUICustomization
+      Parameters:
+        UserPoolId: !Ref UserPool
+        ClientId: ALL
+        CSS: |
+          .logo-customizable { max-width: 50%; }
+          .banner-customizable { background-color: white; }
+          .socialButton-customizable { background-color: white; border: 1px solid #dddddd }
+    Delete:
+      Action: setUICustomization
+      IgnoreErrors: true
+      Parameters:
+        UserPoolId: !Ref UserPool
+        ClientId: ALL
+        CSS: ''
+        ImageFile: 'null'
+```
+
 ## SES
 
 ### SES::DomainVerification
 
 ```yaml
 DomainVerification:
-  Type: Custom::SES::DomainVerification
+  Type: Custom::SESDomainVerification
   DependsOn: CustomResourcePolicy # Important: Otherwise you will run into Access Denied exception
   Properties:
     ServiceToken: !GetAtt CustomResource.Outputs.ServiceToken
@@ -126,7 +159,7 @@ DomainVerificationRecord:
 
 ```yaml
 DomainRuleSet:
-  Type: Custom::SES::ReceiptRuleSet
+  Type: Custom::SESReceiptRuleSet
   DependsOn: CustomResourcePolicy
   Properties:
     ServiceToken: !GetAtt CustomResource.Outputs.ServiceToken
@@ -139,7 +172,7 @@ DomainRuleSet:
       Action: deleteReceiptRuleSet
 
 ActivateDomainRuleSet:
-  Type: Custom::SES::ActivateDomainRuleSet
+  Type: Custom::SESActivateDomainRuleSet
   DependsOn: DomainRuleSet
   Properties:
     ServiceToken: !GetAtt CustomResource.Outputs.ServiceToken
@@ -158,7 +191,7 @@ ActivateDomainRuleSet:
 
 ```yaml
 DomainReceiptRule:
-  Type: Custom::SES::ReceiptRule
+  Type: Custom::SESReceiptRule
   DependsOn: DomainRuleSet
   Properties:
     ServiceToken: !GetAtt CustomResource.Outputs.ServiceToken
