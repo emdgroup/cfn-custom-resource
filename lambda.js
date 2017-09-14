@@ -35,9 +35,9 @@ function random() {
 }
 
 function fixBooleans(obj, physicalId) {
-  if (Array.isArray(obj)) return obj.map(fixBooleans);
+  if (Array.isArray(obj)) return obj.map(item => fixBooleans(item, physicalId));
   else if (typeof obj === 'object') {
-    for (key in obj) obj[key] = fixBooleans(obj[key]);
+    for (key in obj) obj[key] = fixBooleans(obj[key], physicalId);
     return obj;
   } else if (typeof obj === 'string')
     return obj === 'true' ? true :
