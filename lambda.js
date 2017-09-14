@@ -3,9 +3,9 @@ const AWS = require('aws-sdk'),
   querystring = require('querystring'),
   crypto = require('crypto'),
   https = require("https"),
-  url = require("url");;
+  url = require("url");
 
-exports.handler = (event, context, cb) => {
+exports.handler = (event, ctx, cb) => {
   console.log('Request', JSON.stringify(Object.assign({}, event, {
     ResourceProperties: null
   })));
@@ -16,16 +16,16 @@ exports.handler = (event, context, cb) => {
     args[attr] = args[attr] || event.ResourceProperties[attr]
   );
   if (event.RequestType === 'Delete') {
-    deleteResource(args, event, context, function(data) {
-      response.send(event, context, response.SUCCESS, {}, event.PhysicalResourceId);
+    deleteResource(args, event, ctx, function(data) {
+      response.send(event, ctx, response.SUCCESS, {}, event.PhysicalResourceId);
     });
   } else if (event.RequestType === 'Create' || event.RequestType === 'Update') {
-    createOrUpdateResource(args, event, context, function(data) {
+    createOrUpdateResource(args, event, ctx, function(data) {
       let props = event.ResourceProperties[event.RequestType] || event.ResourceProperties['Create'];
       if (props.PhysicalResourceIdQuery) event.PhysicalResourceId = jmespath.search(data, props.PhysicalResourceIdQuery);
       if (props.PhysicalResourceId) event.PhysicalResourceId = props.PhysicalResourceId;
       if (props.Attributes) data = jmespath.search(data, props.Attributes);
-      response.send(event, context, response.SUCCESS, data, event.PhysicalResourceId);
+      response.send(event, ctx, response.SUCCESS, data, event.PhysicalResourceId);
     });
   }
 };
@@ -47,18 +47,18 @@ function fixBooleans(obj, physicalId) {
   else return obj;
 }
 
-function deleteResource(args, event, context, cb) {
+function deleteResource(args, event, ctx, cb) {
   request(args, event, function(err, data) {
     if (err && args.IgnoreErrors !== true) {
-      response.send(event, context, response.FAILED, err, event.PhysicalResourceId);
+      response.send(event, ctx, response.FAILED, err, event.PhysicalResourceId);
     } else cb(data);
   });
 }
 
-function createOrUpdateResource(args, event, context, cb) {
+function createOrUpdateResource(args, event, ctx, cb) {
   request(args, event, function(err, data) {
     if (err && args.IgnoreErrors !== true) {
-      response.send(event, context, response.FAILED, err, event.PhysicalResourceId);
+      response.send(event, ctx, response.FAILED, err, event.PhysicalResourceId);
     } else cb(data);
   });
 }
@@ -72,11 +72,11 @@ function request(args, event, cb) {
 let response = {
   SUCCESS: 'SUCCESS',
   FAILED: 'FAILED',
-  body: function(event, context, responseStatus, responseData, physicalResourceId) {
+  body: function(event, ctx, responseStatus, responseData, pId) {
     let body = {
       Status: responseStatus,
       Reason: responseData instanceof Error ? responseData.toString() : '',
-      PhysicalResourceId: physicalResourceId || event.RequestId,
+      PhysicalResourceId: pId || event.RequestId,
       StackId: event.StackId,
       RequestId: event.RequestId,
       LogicalResourceId: event.LogicalResourceId,
@@ -89,7 +89,7 @@ let response = {
       return body;
     }
   },
-  send: function(event, context) {
+  send: function(event, ctx) {
     let responseBody = response.body.apply(this, arguments);
     console.log('Response', JSON.stringify(Object.assign({}, responseBody, {
       Data: null
@@ -100,9 +100,9 @@ let response = {
       hostname: parsed.hostname,
       path: parsed.path,
       method: 'PUT',
-    }, res => () => context.done()).on("error", function(error) {
+    }, res => () => ctx.done()).on("error", function(error) {
       console.log(error);
-      context.done();
+      ctx.done();
     }).end(JSON.stringify(responseBody));
   },
 };
