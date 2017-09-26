@@ -31,6 +31,50 @@ CustomResourcePolicy:
             - ses:VerifyDomainIdentity
 ```
 
+## S3
+
+## S3::BucketInventory
+
+```yaml
+
+Bucket:
+  Type: AWS::S3::Bucket
+
+BucketInventory:
+  Type: Custom::BucketInventory
+  DependsOn: CustomResourcePolicy
+  Properties:
+    ServiceToken: !GetAtt CustomResource.Arn
+    Service: S3
+    PhysicalResourceId: !Ref Bucket
+    Create:
+      Action: putBucketInventoryConfiguration
+      Parameters:
+        Bucket: !Ref Bucket
+        Id: !Ref Bucket
+        InventoryConfiguration:
+          Id: !Ref Bucket
+          IncludedObjectVersions: Current
+          OptionalFields: [Size, LastModifiedDate]
+          IsEnabled: true
+          Schedule:
+            Frequency: Daily
+          Filter:
+            Prefix: abcdef/
+          Destination:
+            S3BucketDestination:
+              Bucket: !GetAtt Bucket.Arn
+              Format: CSV
+              AccountId: !Ref AWS::AccountId
+              Prefix: Inventory
+    Delete:
+      Action: deleteBucketInventoryConfiguration
+      Parameters:
+        Bucket: !Ref Bucket
+        Id: ${PhysicalId}
+      IgnoreErrors: true
+```
+
 ## Cognito
 
 ### Cognito::UserPoolDomain
