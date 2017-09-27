@@ -5,27 +5,28 @@ const AWS = require('aws-sdk'),
   https = require("https"),
   url = require("url");
 
-exports.handler = (event, ctx, cb) => {
-  console.log('Request', JSON.stringify(Object.assign({}, event, {
-    ResourceProperties: null
+exports.handler = (ev, ctx, cb) => {
+  console.log(JSON.stringify(Object.assign({}, ev, {
+    ResourceProperties: null,
+    OldResourceProperties: null,
   })));
-  event.ResourceProperties = fixBooleans(event.ResourceProperties, event.PhysicalResourceId);
-  let args = event.ResourceProperties[event.RequestType];
-  if (!args) args = event.RequestType === 'Delete' ? {} : event.ResourceProperties['Create'];
+  ev.ResourceProperties = fixBooleans(ev.ResourceProperties, ev.PhysicalResourceId);
+  let args = ev.ResourceProperties[ev.RequestType];
+  if (!args) args = ev.RequestType === 'Delete' ? {} : ev.ResourceProperties['Create'];
   ['Attributes', 'PhysicalResourceId', 'PhysicalResourceIdQuery', 'Parameters'].forEach(attr =>
-    args[attr] = args[attr] || event.ResourceProperties[attr]
+    args[attr] = args[attr] || ev.ResourceProperties[attr]
   );
-  if (event.RequestType === 'Delete') {
-    deleteResource(args, event, ctx, function(data) {
-      response.send(event, ctx, response.SUCCESS, {}, event.PhysicalResourceId);
+  if (ev.RequestType === 'Delete') {
+    updateResource(args, ev, ctx, function(data) {
+      response.send(ev, ctx, response.SUCCESS, {}, ev.PhysicalResourceId);
     });
-  } else if (event.RequestType === 'Create' || event.RequestType === 'Update') {
-    createOrUpdateResource(args, event, ctx, function(data) {
-      let props = event.ResourceProperties[event.RequestType] || event.ResourceProperties['Create'];
-      if (props.PhysicalResourceIdQuery) event.PhysicalResourceId = jmespath.search(data, props.PhysicalResourceIdQuery);
-      if (props.PhysicalResourceId) event.PhysicalResourceId = props.PhysicalResourceId;
+  } else if (ev.RequestType === 'Create' || ev.RequestType === 'Update') {
+    updateResource(args, ev, ctx, function(data) {
+      let props = ev.ResourceProperties[ev.RequestType] || ev.ResourceProperties['Create'];
+      if (props.PhysicalResourceIdQuery) ev.PhysicalResourceId = jmespath.search(data, props.PhysicalResourceIdQuery);
+      if (props.PhysicalResourceId) ev.PhysicalResourceId = props.PhysicalResourceId;
       if (props.Attributes) data = jmespath.search(data, props.Attributes);
-      response.send(event, ctx, response.SUCCESS, data, event.PhysicalResourceId);
+      response.send(ev, ctx, response.SUCCESS, data, ev.PhysicalResourceId);
     });
   }
 };
@@ -47,40 +48,43 @@ function fixBooleans(obj, physicalId) {
   else return obj;
 }
 
-function deleteResource(args, event, ctx, cb) {
-  request(args, event, function(err, data) {
+function b64ify(obj) {
+  if (Buffer.isBuffer(obj))
+    return obj.toString('base64');
+  else if (Array.isArray(obj)) return obj.map(item => b64ify(item));
+  else if (typeof obj === 'object') {
+    for (key in obj) obj[key] = b64ify(obj[key]);
+    return obj;
+  }
+  else return obj;
+}
+
+function updateResource(args, ev, ctx, cb) {
+  request(args, ev, function(err, data) {
     if (err && args.IgnoreErrors !== true) {
-      response.send(event, ctx, response.FAILED, err, event.PhysicalResourceId);
+      response.send(ev, ctx, response.FAILED, err, ev.PhysicalResourceId);
     } else cb(data);
   });
 }
 
-function createOrUpdateResource(args, event, ctx, cb) {
-  request(args, event, function(err, data) {
-    if (err && args.IgnoreErrors !== true) {
-      response.send(event, ctx, response.FAILED, err, event.PhysicalResourceId);
-    } else cb(data);
-  });
-}
-
-function request(args, event, cb) {
-  if (event.RequestType === 'Delete' && !args.Action) return cb();
-  let client = new AWS[event.ResourceProperties.Service]();
+function request(args, ev, cb) {
+  if (ev.RequestType === 'Delete' && !args.Action) return cb();
+  let client = new AWS[ev.ResourceProperties.Service]();
   client[args.Action](args.Parameters, cb);
 }
 
 let response = {
   SUCCESS: 'SUCCESS',
   FAILED: 'FAILED',
-  body: function(event, ctx, responseStatus, responseData, pId) {
+  body: function(ev, ctx, responseStatus, responseData, pId) {
     let body = {
       Status: responseStatus,
       Reason: responseData instanceof Error ? responseData.toString() : '',
-      PhysicalResourceId: pId || event.RequestId,
-      StackId: event.StackId,
-      RequestId: event.RequestId,
-      LogicalResourceId: event.LogicalResourceId,
-      Data: responseStatus === response.FAILED ? null : responseData,
+      PhysicalResourceId: pId || ev.RequestId,
+      StackId: ev.StackId,
+      RequestId: ev.RequestId,
+      LogicalResourceId: ev.LogicalResourceId,
+      Data: responseStatus === response.FAILED ? null : b64ify(responseData),
     }
     if(JSON.stringify(body).length > 4096) {
       console.log('truncated responseData as it exceeded 4096 bytes');
@@ -89,13 +93,13 @@ let response = {
       return body;
     }
   },
-  send: function(event, ctx) {
+  send: function(ev, ctx) {
     let responseBody = response.body.apply(this, arguments);
     console.log('Response', JSON.stringify(Object.assign({}, responseBody, {
       Data: null
     })));
 
-    var parsed = url.parse(event.ResponseURL);
+    var parsed = url.parse(ev.ResponseURL);
     https.request({
       hostname: parsed.hostname,
       path: parsed.path,
