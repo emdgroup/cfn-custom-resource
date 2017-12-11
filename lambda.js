@@ -10,23 +10,24 @@ exports.handler = (ev, ctx, cb) => {
     ResourceProperties: null,
     OldResourceProperties: null,
   })));
-  ev.ResourceProperties = fixBooleans(ev.ResourceProperties, ev.PhysicalResourceId);
+  let rand = random(), pid = 'PhysicalResourceId';
+  ev.ResourceProperties = fixBooleans(ev.ResourceProperties, ev[pid] || ev.ResourceProperties[pid], rand);
   let args = ev.ResourceProperties[ev.RequestType];
   if (!args) args = ev.RequestType === 'Delete' ? {} : ev.ResourceProperties['Create'];
-  ['Attributes', 'PhysicalResourceId', 'PhysicalResourceIdQuery', 'Parameters'].forEach(attr =>
+  ['Attributes', pid, 'PhysicalResourceIdQuery', 'Parameters'].forEach(attr =>
     args[attr] = args[attr] || ev.ResourceProperties[attr]
   );
   if (ev.RequestType === 'Delete') {
     updateResource(args, ev, ctx, function(data) {
-      response.send(ev, ctx, response.SUCCESS, {}, ev.PhysicalResourceId);
+      response.send(ev, ctx, response.SUCCESS, {}, ev[pid]);
     });
   } else if (ev.RequestType === 'Create' || ev.RequestType === 'Update') {
     updateResource(args, ev, ctx, function(data) {
       let props = ev.ResourceProperties[ev.RequestType] || ev.ResourceProperties['Create'];
-      if (props.PhysicalResourceIdQuery) ev.PhysicalResourceId = jmespath.search(data, props.PhysicalResourceIdQuery);
-      if (props.PhysicalResourceId) ev.PhysicalResourceId = props.PhysicalResourceId;
+      if (props.PhysicalResourceIdQuery) ev[pid] = jmespath.search(data, props.PhysicalResourceIdQuery);
+      if (props[pid]) ev[pid] = props[pid];
       if (props.Attributes) data = jmespath.search(data, props.Attributes);
-      response.send(ev, ctx, response.SUCCESS, data, ev.PhysicalResourceId);
+      response.send(ev, ctx, response.SUCCESS, data, ev[pid]);
     });
   }
 };
@@ -35,17 +36,16 @@ function random() {
   return crypto.randomBytes(6).toString('base64').replace(/[\+=\/]/g, '').toUpperCase();
 }
 
-function fixBooleans(obj, physicalId) {
-  if (Array.isArray(obj)) return obj.map(item => fixBooleans(item, physicalId));
+function fixBooleans(obj, id, rand) {
+  if (Array.isArray(obj)) return obj.map(item => fixBooleans(item, id, rand));
   else if (typeof obj === 'object') {
-    for (key in obj) obj[key] = fixBooleans(obj[key], physicalId);
+    for (key in obj) obj[key] = fixBooleans(obj[key], id, rand);
     return obj;
-  } else if (typeof obj === 'string')
-    return obj === 'true' ? true :
-      obj === 'false' ? false :
-      obj === 'null' ? null :
-      obj.replace(/\${PhysicalId}/, physicalId).replace(/\${Random}/, random());
-  else return obj;
+  } else if (typeof obj === 'string') {
+    obj = obj === 'true' ? true : obj === 'false' ? false : obj === 'null' ? null : obj.replace(/\${Random}/, rand);
+    if (typeof obj === 'string' && id) obj = obj.replace(/\${PhysicalId}/, id).replace(/\${PhysicalResourceId}/, id);
+    return obj;
+  } else return obj;
 }
 
 function b64ify(obj) {
@@ -55,8 +55,7 @@ function b64ify(obj) {
   else if (typeof obj === 'object') {
     for (key in obj) obj[key] = b64ify(obj[key]);
     return obj;
-  }
-  else return obj;
+  } else return obj;
 }
 
 function updateResource(args, ev, ctx, cb) {
@@ -86,9 +85,11 @@ let response = {
       LogicalResourceId: ev.LogicalResourceId,
       Data: responseStatus === response.FAILED ? null : b64ify(responseData),
     }
-    if(JSON.stringify(body).length > 4096) {
+    if (JSON.stringify(body).length > 4096) {
       console.log('truncated responseData as it exceeded 4096 bytes');
-      return Object.assign(body, { Data: null });
+      return Object.assign(body, {
+        Data: null
+      });
     } else {
       return body;
     }
