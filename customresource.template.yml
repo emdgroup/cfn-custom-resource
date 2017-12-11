@@ -2,7 +2,7 @@ Description: Generic Custom::Resource for CloudFormation
 Parameters:
   LambdaTimeout:
     Type: Number
-    Default: 10
+    Default: 300
 
 Resources:
   CustomResource:
