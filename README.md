@@ -14,7 +14,7 @@ Download the `customresource.template.json` file from the [releases](https://git
 CustomResource:
   Type: AWS::CloudFormation::Stack
   Properties:
-    TemplateURL: https://s3.amazonaws.com/my-templates/customresource/v1.1.0/customresource.template.json
+    TemplateURL: https://s3.amazonaws.com/my-templates/customresource/v1.1.2/customresource.template.json
 
 CustomResourcePolicy:
   Type: AWS::IAM::Policy
@@ -44,16 +44,16 @@ BucketInventory:
   Type: Custom::BucketInventory
   DependsOn: CustomResourcePolicy
   Properties:
-    ServiceToken: !GetAtt CustomResource.Arn
+    ServiceToken: !GetAtt CustomResource.Outputs.ServiceToken
     Service: S3
-    PhysicalResourceId: !Ref Bucket
+    PhysicalResourceId: !Sub ${AWS::StackName}-BucketInventory-${!Random}
     Create:
       Action: putBucketInventoryConfiguration
       Parameters:
         Bucket: !Ref Bucket
-        Id: !Ref Bucket
+        Id: ${PhysicalResourceId}
         InventoryConfiguration:
-          Id: !Ref Bucket
+          Id: ${PhysicalResourceId}
           IncludedObjectVersions: Current
           OptionalFields: [Size, LastModifiedDate]
           IsEnabled: true
@@ -71,8 +71,83 @@ BucketInventory:
       Action: deleteBucketInventoryConfiguration
       Parameters:
         Bucket: !Ref Bucket
-        Id: ${PhysicalId}
+        Id: ${PhysicalResourceId}
       IgnoreErrors: true
+```
+
+## RDS
+
+### RDS::IAMAuthentication
+
+```yaml
+CustomResourcePolicy:
+  Type: AWS::IAM::Policy
+  Properties:
+    PolicyName: RDS
+    Roles: [!Ref CustomResourceRole]
+    PolicyDocument:
+      Version: '2012-10-17'
+      Statement:
+        - Effect: Allow
+          Resource: !GetAtt Role.Arn
+          Action: iam:PassRole
+        - Effect: Allow
+          Resource: !Sub arn:aws:rds:${AWS::Region}:${AWS::AccountId}:cluster:${DBCluster}
+          Action:
+            - rds:ModifyDBCluster
+            - rds:AddRoleToDBCluster
+            - rds:RemoveRoleFromDBCluster
+
+EnableIAM:
+  Type: Custom::RDSIAMAuthentication
+  DependsOn: CustomResourcePolicy
+  Properties:
+    ServiceToken: !GetAtt CustomResource.Outputs.ServiceToken
+    Service: RDS
+    Create:
+      Action: modifyDBCluster
+      Parameters:
+        DBClusterIdentifier: !Ref DBCluster
+        EnableIAMDatabaseAuthentication: true
+        ApplyImmediately: true
+```
+
+### RDS:RoleAttachment
+
+```yaml
+RoleAttachment:
+  Type: Custom::RDSRoleAttachment
+  DependsOn: CustomResourcePolicy
+  Properties:
+    ServiceToken: !GetAtt CustomResource.Outputs.ServiceToken
+    Service: RDS
+    Parameters:
+      DBClusterIdentifier: !Ref DBCluster
+      RoleArn: !GetAtt Role.Arn
+    Create:
+      Action: addRoleToDBCluster
+    Delete:
+      Action: removeRoleFromDBCluster
+```
+
+## KMS
+
+### KMS::GenerateRandom
+
+```yaml
+  HmacSecret:
+    Type: Custom::KMSRandomBytes
+    DependsOn: CustomResourcePolicy
+    Properties:
+      ServiceToken: !GetAtt CustomResource.Outputs.ServiceToken
+      Service: KMS
+      Create:
+        Action: generateRandom
+        Parameters:
+          NumberOfBytes: 36
+
+# access random base64-encoded bytes with !GetAtt HmacSecret.Plaintext
+
 ```
 
 ## Cognito
@@ -88,7 +163,7 @@ UserPoolDomain:
     PhysicalResourceId: !Ref DomainName
     Parameters:
       UserPoolId: !Ref UserPool
-      Domain: ${PhysicalId}
+      Domain: ${PhysicalResourceId}
     Create:
       Action: createUserPoolDomain
     Update:
