@@ -1,0 +1,97 @@
+Resources:
+
+  CustomResource:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Role: !GetAtt CustomResourceRole.Arn
+      Code:
+        ZipFile: !Include { type: string, location: ../lambda.js }
+      Runtime: nodejs6.10
+      Timeout: 300
+
+  CustomResourceLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 7
+      LogGroupName: !Sub /aws/lambda/${CustomResource}
+
+  CustomResourceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  CustomResourcePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: SES
+      Roles: [!Ref CustomResourceRole]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Resource: '*'
+            Action:
+              # add actions that the custom resource needs to have access to
+              - s3:PutInventoryConfiguration
+              - kms:GenerateRandom
+
+  Bucket:
+    Type: AWS::S3::Bucket
+
+  BucketInventory:
+    Type: Custom::BucketInventory
+    DependsOn: CustomResourcePolicy
+    Properties:
+      ServiceToken: !GetAtt CustomResource.Arn
+      Service: S3
+      PhysicalResourceId: !Sub ${AWS::StackName}-BucketInventory-${!Random}
+      Create:
+        Action: putBucketInventoryConfiguration
+        Parameters:
+          Bucket: !Ref Bucket
+          Id: !Sub ${AWS::StackName}-BucketInventory-${!Random}
+          InventoryConfiguration:
+            Id: !Sub ${AWS::StackName}-BucketInventory-${!Random}
+            IncludedObjectVersions: Current
+            OptionalFields: [Size, LastModifiedDate]
+            IsEnabled: true
+            Schedule:
+              Frequency: Daily
+            Filter:
+              Prefix: abcdef/
+            Destination:
+              S3BucketDestination:
+                Bucket: !GetAtt Bucket.Arn
+                Format: CSV
+                AccountId: !Ref AWS::AccountId
+                Prefix: Inventory
+      Delete:
+        Action: deleteBucketInventoryConfiguration
+        Parameters:
+          Bucket: !Ref Bucket
+          Id: ${PhysicalId}
+        IgnoreErrors: true
+
+  HmacSecret:
+    Type: Custom::KMSRandomBytes
+    DependsOn: CustomResourcePolicy
+    Properties:
+      ServiceToken: !GetAtt CustomResource.Arn
+      Service: KMS
+      Create:
+        Action: generateRandom
+        Parameters:
+          NumberOfBytes: 36
+
+Outputs:
+  HmacSecret:
+    Value: !GetAtt HmacSecret.Plaintext
