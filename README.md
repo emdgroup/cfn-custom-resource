@@ -4,17 +4,22 @@ This project provides a generic `Custom::Resource` for CloudFormation. Almost an
 
 Here are a few examples of what additional resources you will be able to manage through CloudFormation with this little helper.
 
+## Tests
+
+run `make test`. This will create a stack with some of the custom resources described below. If the stack was created successfully, the stack will be deleted.
+
 ## Setup
 
 The following snippet is required in each CloudFormation stack that wants to make use of this helper.
 
 Download the `customresource.template.json` file from the [releases](https://github.com/emdgroup/cfn-custom-resource/releases) page and place it on an S3 bucket in your account.
 
+
 ```yaml
 CustomResource:
   Type: AWS::CloudFormation::Stack
   Properties:
-    TemplateURL: https://s3.amazonaws.com/my-templates/customresource/v1.1.2/customresource.template.json
+    TemplateURL: https://s3.amazonaws.com/my-templates/customresource/v1.2.0/customresource.template.json
 
 CustomResourcePolicy:
   Type: AWS::IAM::Policy
