@@ -1,0 +1,8 @@
+StackName: custom-resource-test
+
+TemplateBody:
+  Fn::Stringify: !Include examples.template.yml
+
+Parameters: []
+
+Capabilities: [CAPABILITY_IAM]
