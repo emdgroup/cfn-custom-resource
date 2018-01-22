@@ -5,17 +5,18 @@ const AWS = require('aws-sdk'),
   https = require("https"),
   url = require("url");
 
+let pid = 'PhysicalResourceId', rp = 'ResourceProperties';
 exports.handler = (ev, ctx, cb) => {
   console.log(JSON.stringify(Object.assign({}, ev, {
     ResourceProperties: null,
     OldResourceProperties: null,
   })));
-  let rand = random(), pid = 'PhysicalResourceId';
-  ev.ResourceProperties = fixBooleans(ev.ResourceProperties, ev[pid] || fixBooleans(ev.ResourceProperties[pid], null, rand), rand);
-  let args = ev.ResourceProperties[ev.RequestType];
-  if (!args) args = ev.RequestType === 'Delete' ? {} : ev.ResourceProperties['Create'];
+  let rand = random();
+  ev[rp] = fixBooleans(ev[rp], ev.RequestType === 'Delete' ? ev[pid] : fixBooleans(ev[rp][pid], null, rand), rand);
+  let args = ev[rp][ev.RequestType];
+  if (!args) args = ev.RequestType === 'Delete' ? {} : ev[rp]['Create'];
   ['Attributes', pid, 'PhysicalResourceIdQuery', 'Parameters'].forEach(attr =>
-    args[attr] = args[attr] || ev.ResourceProperties[attr]
+    args[attr] = args[attr] || ev[rp][attr]
   );
   if (ev.RequestType === 'Delete') {
     updateResource(args, ev, ctx, function(data) {
@@ -23,7 +24,7 @@ exports.handler = (ev, ctx, cb) => {
     });
   } else if (ev.RequestType === 'Create' || ev.RequestType === 'Update') {
     updateResource(args, ev, ctx, function(data) {
-      let props = ev.ResourceProperties[ev.RequestType] || ev.ResourceProperties['Create'];
+      let props = ev[rp][ev.RequestType] || ev[rp]['Create'];
       if (props.PhysicalResourceIdQuery) ev[pid] = jmespath.search(data, props.PhysicalResourceIdQuery);
       if (props[pid]) ev[pid] = props[pid];
       if (props.Attributes) data = jmespath.search(data, props.Attributes);
@@ -68,7 +69,7 @@ function updateResource(args, ev, ctx, cb) {
 
 function request(args, ev, cb) {
   if (ev.RequestType === 'Delete' && !args.Action) return cb();
-  let client = new AWS[ev.ResourceProperties.Service]();
+  let client = new AWS[ev[rp].Service]();
   client[args.Action](args.Parameters, cb);
 }
 
