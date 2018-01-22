@@ -53,7 +53,7 @@ Resources:
     Properties:
       ServiceToken: !GetAtt CustomResource.Arn
       Service: S3
-      PhysicalResourceId: !Sub ${AWS::StackName}-BucketInventory-${!Random}
+      PhysicalResourceId: !Sub ${AWS::StackName}-${!Random}
       Create:
         Action: putBucketInventoryConfiguration
         Parameters:
@@ -95,3 +95,5 @@ Resources:
 Outputs:
   HmacSecret:
     Value: !GetAtt HmacSecret.Plaintext
+  BucketInventory:
+    Value: !Ref BucketInventory
