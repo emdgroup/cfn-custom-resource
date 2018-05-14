@@ -38,10 +38,9 @@ CustomResourcePolicy:
 
 ## S3
 
-## S3::BucketInventory
+### S3::BucketInventory
 
 ```yaml
-
 Bucket:
   Type: AWS::S3::Bucket
 
@@ -153,6 +152,23 @@ RoleAttachment:
 
 # access random base64-encoded bytes with !GetAtt HmacSecret.Plaintext
 
+```
+
+## GuardDuty
+
+### GuardDuty::InvitationId
+
+```yaml
+InvitationId:
+  Type: Custom::GuardDutyInvitationId
+  Properties:
+    ServiceToken: !GetAtt CustomResource.Outputs.ServiceToken
+    Service: GuardDuty
+    PhysicalResourceIdQuery: Invitations[0].InvitationId
+    Create:
+      Action: listInvitations
+
+# Access InvitationId via !Ref InvitationId
 ```
 
 ## Cognito
