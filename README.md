@@ -36,6 +36,36 @@ CustomResourcePolicy:
             - ses:VerifyDomainIdentity
 ```
 
+
+## Cross-Account, cross-region resources
+
+Resources can be created in different accounts and regions. To create a resource in a different account, provide a `RoleArn` property. The role must exist in the target account and must list the `CustomResourceRole` ARN as a principal in the resource policy. To create resources in a different region, simply provide the `Region` property.
+
+This example registers a Cognito User Pool Client in a different account and region.
+
+```yaml
+UserPoolClient:
+  Type: Custom::CognitoUserPoolClient
+  DependsOn: CustomResourcePolicy
+  Properties:
+    ServiceToken: !GetAtt CustomResource.Outputs.ServiceToken
+    Service: CognitoIdentityServiceProvider
+    RoleArn: arn:aws:iam::123412341234:role/CustomResourceDelegate
+    Region: us-east-2
+    Create:
+      Action: createUserPoolClient
+      PhysicalResourceIdQuery: UserPoolClient.ClientId
+      Parameters:
+        UserPoolId: !Ref UserPoolId
+        ClientName: !Sub ${AWS::AccountId}-${AWS::Region}-${AWS::StackName}
+        GenerateSecret: true
+    Delete:
+      Action: deleteUserPoolClient
+      Parameters:
+        ClientId: ${PhysicalResourceId}
+        UserPoolId: !Ref UserPoolId
+```
+
 ## S3
 
 ### S3::BucketInventory
@@ -152,6 +182,31 @@ RoleAttachment:
 
 # access random base64-encoded bytes with !GetAtt HmacSecret.Plaintext
 
+```
+
+## APIGateway
+
+### APIGateway::RegionalEndpoint
+
+```yaml
+# Statement:
+#   Effect: Allow
+#   Action: apigateway:GET
+#   Resource: !Sub arn:aws:apigateway:${AWS::Region}:*:/domainnames/*
+
+RegionalEndpoint:
+  Type: Custom::APIGatewayRegionalEndpoint
+  DependsOn: CustomResourcePolicy
+  Properties:
+    ServiceToken: !GetAtt CustomResource.Outputs.ServiceToken
+    Service: APIGateway
+    Create:
+      Action: getDomainName
+      PhysicalResourceIdQuery: regionalDomainName
+      Parameters:
+        domainName: !Ref DomainName
+
+# !Ref RegionalEndpoint contains the regional endpoint's hostname
 ```
 
 ## GuardDuty
