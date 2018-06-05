@@ -38,11 +38,11 @@ function random() {
 function fixBooleans(obj, id, rand) {
 	if (Array.isArray(obj)) return obj.map(item => fixBooleans(item, id, rand));
 	else if (typeof obj === 'object') {
-		for (key in obj) obj[key] = fixBooleans(obj[key], id, rand);
+		for (let key in obj) obj[key] = fixBooleans(obj[key], id, rand);
 		return obj;
 	} else if (typeof obj === 'string') {
 		obj = obj === 'true' ? true : obj === 'false' ? false : obj === 'null' ? null : obj.replace(/\${Random}/, rand);
-		if (typeof obj === 'string' && id) obj = obj.replace(/\${PhysicalId}/, id).replace(/\${PhysicalResourceId}/, id);
+		if (typeof obj === 'string' && id) obj = obj.replace(/\${Physical(Resource)?Id}/, id);
 		return obj;
 	} else return obj;
 }
@@ -52,7 +52,7 @@ function b64ify(obj) {
 		return obj.toString('base64');
 	else if (Array.isArray(obj)) return obj.map(item => b64ify(item));
 	else if (typeof obj === 'object') {
-		for (key in obj) obj[key] = b64ify(obj[key]);
+		for (let key in obj) obj[key] = b64ify(obj[key]);
 		return obj;
 	} else return obj;
 }
