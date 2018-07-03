@@ -12,7 +12,7 @@ exports.handler = (ev, ctx, cb) => {
 		OldResourceProperties: null,
 	})));
 	let rand = random();
-	ev[rp] = fixBooleans(ev[rp], ev.RequestType === 'Delete' ? ev[pid] : fixBooleans(ev[rp][pid], null, rand), rand);
+	ev[rp] = fixBooleans(ev[rp], ev.RequestType !== 'Create' ? ev[pid] : fixBooleans(ev[rp][pid], null, rand), rand);
 	let args = ev[rp][ev.RequestType];
 	if (!args) args = ev.RequestType === 'Delete' ? {} : ev[rp]['Create'];
 	['Attributes', pid, 'PhysicalResourceIdQuery', 'Parameters'].forEach(attr =>
