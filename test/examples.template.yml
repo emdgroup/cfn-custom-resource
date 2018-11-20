@@ -57,14 +57,14 @@ Resources:
     Properties:
       ServiceToken: !GetAtt CustomResource.Arn
       Service: S3
-      PhysicalResourceId: !Sub ${AWS::StackName}-${!Random}
+      PhysicalResourceId: !Sub ${Bucket}-${!Random}
       Create:
         Action: putBucketInventoryConfiguration
         Parameters:
           Bucket: !Ref Bucket
-          Id: !Sub ${AWS::StackName}-BucketInventory-${!Random}
+          Id: !Sub ${Bucket}-${!Random}
           InventoryConfiguration:
-            Id: !Sub ${AWS::StackName}-BucketInventory-${!Random}
+            Id: !Sub ${Bucket}-${!Random}
             IncludedObjectVersions: Current
             OptionalFields: [Size, LastModifiedDate]
             IsEnabled: true
@@ -101,9 +101,3 @@ Outputs:
     Value: !GetAtt HmacSecret.Plaintext
   BucketInventory:
     Value: !Ref BucketInventory
-  TemplateName:
-    Value: TEMPLATE_NAME_REPLACE
-  TemplateVersion:
-    Value: TEMPLATE_GIT_VERSION_REPLACE
-  TemplateBuildDate:
-    Value: TEMPLATE_BUILD_DATE_REPLACE
