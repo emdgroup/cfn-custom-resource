@@ -97,3 +97,9 @@ Outputs:
     Value: !GetAtt HmacSecret.Plaintext
   BucketInventory:
     Value: !Ref BucketInventory
+  TemplateName:
+    Value: TEMPLATE_NAME_REPLACE
+  TemplateVersion:
+    Value: TEMPLATE_GIT_VERSION_REPLACE
+  TemplateBuildDate:
+    Value: TEMPLATE_BUILD_DATE_REPLACE
