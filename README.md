@@ -19,12 +19,11 @@ Download the `customresource.template.json` file from the [releases](https://git
 CustomResource:
   Type: AWS::CloudFormation::Stack
   Properties:
-    TemplateURL: https://s3.amazonaws.com/my-templates/customresource/v1.2.0/customresource.template.json
+    TemplateURL: https://s3.amazonaws.com/my-templates/customresource/v1.3.2/customresource.template.json
 
 CustomResourcePolicy:
-  Type: AWS::IAM::Policy
+  Type: AWS::IAM::ManagedPolicy
   Properties:
-    PolicyName: SES
     Roles: [!GetAtt CustomResource.Outputs.Role]
     PolicyDocument:
       Version: '2012-10-17'
