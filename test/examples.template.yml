@@ -57,14 +57,14 @@ Resources:
     Properties:
       ServiceToken: !GetAtt CustomResource.Arn
       Service: S3
-      PhysicalResourceId: !Sub ${Bucket}-${!Random}
+      PhysicalResourceId: !Sub bucket-${!Random}
       Create:
         Action: putBucketInventoryConfiguration
         Parameters:
           Bucket: !Ref Bucket
-          Id: !Sub ${Bucket}-${!Random}
+          Id: !Sub bucket-${!Random}
           InventoryConfiguration:
-            Id: !Sub ${Bucket}-${!Random}
+            Id: !Sub bucket-${!Random}
             IncludedObjectVersions: Current
             OptionalFields: [Size, LastModifiedDate]
             IsEnabled: true
