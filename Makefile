@@ -1,10 +1,5 @@
-ARTIFACTS=artifacts
-
 build:
-	npm install -g cfn-include
-	rm -fr ${ARTIFACTS}
-	mkdir -p ${ARTIFACTS}
-	cfn-include -t customresource.template.yml > ${ARTIFACTS}/customresource.template.json
+	cfn-include -t customresource.template.yml > artifacts/customresource.template.json
 
 test: build
 	cfn-include test/examples.config.yml | jq 'del(.Metadata)' > test/examples.config.json

@@ -1,0 +1,16 @@
+TemplateURL: https://s3-eu-west-1.amazonaws.com/hcie-templates/continuous-integration/v1.1.8/pipeline.template.json
+
+StackName: template-build-custom-resource
+
+Parameters:
+- ParameterKey: Description
+  ParameterValue: custom-resource template build
+
+- ParameterKey: TemplateName
+  ParameterValue: custom-resource
+
+- ParameterKey: AlertsStackName
+  ParameterValue: template-alerts
+
+Capabilities:
+- CAPABILITY_NAMED_IAM

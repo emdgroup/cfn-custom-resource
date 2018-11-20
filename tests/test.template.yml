@@ -1,0 +1,8 @@
+
+Resources:
+  CustomResourceStack:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL: customresource.template.json
+      Parameters:
+        LambdaTimeout: 300
