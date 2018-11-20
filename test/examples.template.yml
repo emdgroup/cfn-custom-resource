@@ -1,5 +1,9 @@
-Resources:
+Parameters:
+  LambdaTimeout:
+    Type: Number
+    Default: 300
 
+Resources:
   CustomResource:
     Type: AWS::Lambda::Function
     Properties:
@@ -8,7 +12,7 @@ Resources:
       Code:
         ZipFile: !Include { type: string, location: ../lambda.js }
       Runtime: nodejs6.10
-      Timeout: 300
+      Timeout: !Ref LambdaTimeout
 
   CustomResourceLogGroup:
     Type: AWS::Logs::LogGroup

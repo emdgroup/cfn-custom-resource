@@ -1,4 +1,3 @@
-
 Resources:
   CustomResourceStack:
     Type: "AWS::CloudFormation::Stack"
@@ -7,7 +6,9 @@ Resources:
       Parameters:
         LambdaTimeout: 300
 
-  CustomResourceStackTest:
+  ExampleStack:
     Type: "AWS::CloudFormation::Stack"
     Properties:
-      TemplateURL: examples.template.json
+      TemplateURL: example.template.json
+      Parameters:
+        LambdaTimeout: 300
